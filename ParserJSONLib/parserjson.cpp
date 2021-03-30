@@ -1,5 +1,6 @@
 #include "parserjson.h"
 #include <exception>
+#include <iostream>
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -117,15 +118,25 @@ void ParserJSON::displayActorData()
 void ParserJSON::run()
 {
     //executes each step from task
-    getJSON(*m_url);
     displayShowData(getJSON(*m_url));
     displayActorData();
+
+    std::cout << "Press ENTER"<<std::endl;
+    std::cin.get();
     emit finished();
 }
 
 const QJsonObject &ParserJSON::getOldestActor(const QJsonDocument &jsonDocument)
 {
     QJsonObject oldestActor;
+    try {
+        if (jsonDocument.isNull())
+            throw "JsonDocument is empty, cannot continue";
+    }  catch (const char* message) {
+        qDebug() << message;
+        return oldestActor;
+    }
+
     if (jsonDocument.isArray())
     {
         QDate oldestActorBirthdayDate;
