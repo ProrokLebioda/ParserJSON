@@ -15,7 +15,8 @@ public:
     ~TestParserJSON();
 
 private slots:
-    void test_case1();
+    void testParserJSONConstructor();
+    void testGetJson();
     void testGetOldestActor();
 };
 
@@ -29,9 +30,23 @@ TestParserJSON::~TestParserJSON()
 
 }
 
-void TestParserJSON::test_case1()
+void TestParserJSON::testParserJSONConstructor()
 {
+    ParserJSON *parser = new ParserJSON();
+    bool isWorking = parser != nullptr;
+    delete parser;
+    QCOMPARE(isWorking,true);
+}
 
+void TestParserJSON::testGetJson()
+{
+    //test if method returns a valid QJsonDocument
+    ParserJSON* parser = new ParserJSON();
+    QJsonDocument* docParser = new QJsonDocument(parser->getJSON(QUrl("http://api.tvmaze.com/schedule/web?date=2020-01-07")));
+    bool isWorking = docParser!=nullptr;
+    delete docParser;
+    delete parser;
+    QCOMPARE(isWorking, true);
 }
 
 void TestParserJSON::testGetOldestActor()

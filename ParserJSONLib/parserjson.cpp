@@ -158,15 +158,33 @@ const QJsonObject &ParserJSON::getOldestActor(const QJsonDocument &jsonDocument)
 
 void ParserJSON::showOldestActorData(const QJsonObject *jsonObject)
 {
-    //longest running
-    int idInt = jsonObject->value(ID).toInt();
-    QString idStr=QString::number(idInt);
-    QUrl url("http://api.tvmaze.com/shows/"+idStr+"/cast");
-    qDebug()<<"Oldest actor in " << jsonObject->value(NAME).toString() << ": ";
-    QJsonObject oldestActor = getOldestActor(getJSON(url));
+    try {
+        if(jsonObject->isEmpty())
+        {
+            throw "Exception! QJsonObject for show is empty!";
+        }
 
-    //birthday could just return value from JSON but let's change how it looks
-    QString actorBirthdayString = oldestActor.value(BIRTHDAY).toString().remove("-");
-    QDate actorBirthdayDate = QDate::fromString(actorBirthdayString,"yyyyMMdd");
-    qDebug()<<"Name: " << oldestActor.value(NAME).toString() << ", birthday: " << actorBirthdayDate.toString();
+        int idInt = jsonObject->value(ID).toInt();
+        QString idStr=QString::number(idInt);
+        QUrl url("http://api.tvmaze.com/shows/"+idStr+"/cast");
+
+        QJsonObject oldestActor = getOldestActor(getJSON(url));
+
+        try {
+            if (oldestActor.isEmpty())
+            {
+                throw "Exception! Oldest actor object is empty, cannot show correct data";
+            }
+            qDebug()<<"Oldest actor in " << jsonObject->value(NAME).toString() << ": ";
+            //birthday could just return value from JSON but let's change how it looks
+            QString actorBirthdayString = oldestActor.value(BIRTHDAY).toString().remove("-");
+            QDate actorBirthdayDate = QDate::fromString(actorBirthdayString,"yyyyMMdd");
+            qDebug()<<"Name: " << oldestActor.value(NAME).toString() << ", birthday: " << actorBirthdayDate.toString();
+
+        }  catch (const char* message) {
+            qDebug() << message;
+        }
+    }  catch (const char* message) {
+        qDebug() << message;
+    }
 }
