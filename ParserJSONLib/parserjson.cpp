@@ -1,4 +1,5 @@
 #include "parserjson.h"
+#include <exception>
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -28,7 +29,7 @@ QJsonDocument ParserJSON::getJSON(QUrl url)
 {
     // create custom temporary event loop on stack
     QEventLoop eventLoop;
-    QObject::connect(m_networkAccessManager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
+    connect(m_networkAccessManager, &QNetworkAccessManager::finished, &eventLoop, &QEventLoop::quit);
     // the HTTP request
     QNetworkRequest req(url);
     QNetworkReply *reply = m_networkAccessManager->get(req);
@@ -43,8 +44,6 @@ QJsonDocument ParserJSON::getJSON(QUrl url)
     else
     {
         QJsonDocument jsonDocument = QJsonDocument::fromJson(reply->readAll());
-
-        //m_jsonDocument = new QJsonDocument(jsonDocument);
         delete reply;
         return jsonDocument;
     }
@@ -64,19 +63,19 @@ void ParserJSON::displayShowData(const QJsonDocument &jsonDocument)
         {
             //get premiered, that is nested in _embedded.show
             QJsonObject jsonObject2 = jsonArray[i].toObject();
-            QJsonObject jsonObjectEmbedded = jsonObject2.value("_embedded").toObject();
-            QJsonObject jsonObjectShow = jsonObjectEmbedded.value("show").toObject();
-            if (!jsonObjectShow.value("premiered").isNull())
+            QJsonObject jsonObjectEmbedded = jsonObject2.value(EMBEDDED).toObject();
+            QJsonObject jsonObjectShow = jsonObjectEmbedded.value(SHOW).toObject();
+            if (!jsonObjectShow.value(PREMIERED).isNull())
             {
                 //count premieres per year
-                QString premieredString= jsonObjectShow.value("premiered").toString();
+                QString premieredString= jsonObjectShow.value(PREMIERED).toString();
                 int year = premieredString.split("-").at(0).toInt();
                 premieresMap[year]++;
 
                 //find longest and shortest runtime (seems like from entire JSON, not per year... perhaps it should be)
-                if (!jsonObjectShow.value("runtime").isNull())
+                if (!jsonObjectShow.value(RUNTIME).isNull())
                 {
-                    int showRuntime = jsonObjectShow.value("runtime").toInt();
+                    int showRuntime = jsonObjectShow.value(RUNTIME).toInt();
                     if (showRuntime > longestRuntime)
                     {
                         longestRuntime = showRuntime;
@@ -92,7 +91,7 @@ void ParserJSON::displayShowData(const QJsonDocument &jsonDocument)
             }
             else
             {
-                qDebug() << jsonObject2.value("name").toString() << " "<< i << " status: null";
+                qDebug() << jsonObject2.value(NAME).toString() << " "<< i << " status: null";
             }
         }
         qDebug() << "Premieres per year:";
@@ -102,17 +101,17 @@ void ParserJSON::displayShowData(const QJsonDocument &jsonDocument)
             qDebug() << it.key()<< ": " << it.value();
         }
 
-        qDebug() << "Longest runtime: " << m_longestRuntimeObject->value("runtime").toInt() << "min, Shortest runtime: " << m_shortestRuntimeObject->value("runtime").toInt() << "min";
+        qDebug() << "Longest runtime: " << m_longestRuntimeObject->value(RUNTIME).toInt() << "min, Shortest runtime: " << m_shortestRuntimeObject->value(RUNTIME).toInt() << "min";
     }
 }
 
 void ParserJSON::displayActorData()
 {
     //longest running show's actor
-    requestActorData(m_longestRuntimeObject);
+    showOldestActorData(m_longestRuntimeObject);
 
     //shortest running show's actor
-    requestActorData(m_shortestRuntimeObject);
+    showOldestActorData(m_shortestRuntimeObject);
 }
 
 void ParserJSON::run()
@@ -124,18 +123,19 @@ void ParserJSON::run()
     emit finished();
 }
 
-void ParserJSON::getOldestActor(const QJsonDocument &jsonDocument)
+const QJsonObject &ParserJSON::getOldestActor(const QJsonDocument &jsonDocument)
 {
+    QJsonObject oldestActor;
     if (jsonDocument.isArray())
     {
         QDate oldestActorBirthdayDate;
-        QJsonObject oldestActor;
+
         QJsonArray jsonArray = jsonDocument.array();
         for (int i = 0; i<jsonArray.count(); i++)
         {
             QJsonObject jsonObject= jsonArray[i].toObject();
-            QJsonObject jsonObjectPerson = jsonObject.value("person").toObject();
-            QString actorBirthdayString = jsonObjectPerson.value("birthday").toString().remove("-");
+            QJsonObject jsonObjectPerson = jsonObject.value(PERSON).toObject();
+            QString actorBirthdayString = jsonObjectPerson.value(BIRTHDAY).toString().remove("-");
             QDate actorBirthdayDate = QDate::fromString(actorBirthdayString,"yyyyMMdd");
             if (oldestActorBirthdayDate.isNull()||oldestActor.isEmpty())
             {
@@ -149,19 +149,24 @@ void ParserJSON::getOldestActor(const QJsonDocument &jsonDocument)
                 oldestActor = jsonObjectPerson;
             }
         }
-        //birthday could just return value from JSON but let's change how it looks
-        QString actorBirthdayString = oldestActor.value("birthday").toString().remove("-");
-        QDate actorBirthdayDate = QDate::fromString(actorBirthdayString,"yyyyMMdd");
-        qDebug()<<"Name: " << oldestActor.value("name").toString() << ", birthday: " << actorBirthdayDate.toString();
+        return oldestActor;
+
     }
+
+    return oldestActor;
 }
 
-void ParserJSON::requestActorData(const QJsonObject *jsonObject)
+void ParserJSON::showOldestActorData(const QJsonObject *jsonObject)
 {
     //longest running
-    int idInt = jsonObject->value("id").toInt();
+    int idInt = jsonObject->value(ID).toInt();
     QString idStr=QString::number(idInt);
     QUrl url("http://api.tvmaze.com/shows/"+idStr+"/cast");
-    qDebug()<<"Oldest actor in " << jsonObject->value("name").toString() << ": ";
-    getOldestActor(getJSON(url));
+    qDebug()<<"Oldest actor in " << jsonObject->value(NAME).toString() << ": ";
+    QJsonObject oldestActor = getOldestActor(getJSON(url));
+
+    //birthday could just return value from JSON but let's change how it looks
+    QString actorBirthdayString = oldestActor.value(BIRTHDAY).toString().remove("-");
+    QDate actorBirthdayDate = QDate::fromString(actorBirthdayString,"yyyyMMdd");
+    qDebug()<<"Name: " << oldestActor.value(NAME).toString() << ", birthday: " << actorBirthdayDate.toString();
 }

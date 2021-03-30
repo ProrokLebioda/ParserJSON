@@ -10,11 +10,10 @@ int main(int argc, char *argv[])
 
     if (argc >1) //let's assume that user passes url as a console parametere when launching
         url_string = QString(argv[1]);
-    //url_string = QString("");
     ParserJSON *parserJson = new ParserJSON(url_string,&a);
     ParserJSON::connect(parserJson,&ParserJSON::finished,&a,&QCoreApplication::quit);
 
-    QTimer::singleShot(0,parserJson,SLOT(run()));
+    QTimer::singleShot(0,parserJson,&ParserJSON::run);
 
     return a.exec();
 }

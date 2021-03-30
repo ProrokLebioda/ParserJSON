@@ -4,6 +4,14 @@
 #include <QObject>
 #include <QtNetwork/QNetworkAccessManager>
 
+#define BIRTHDAY    "birthday"
+#define EMBEDDED    "_embedded"
+#define ID          "id"
+#define NAME        "name"
+#define PERSON      "person"
+#define PREMIERED   "premiered"
+#define RUNTIME     "runtime"
+#define SHOW        "show"
 
 class ParserJSON : public QObject
 {
@@ -15,13 +23,13 @@ public:
     //void getActorInformation();
     void displayShowData(const QJsonDocument &jsonDocument);
     void displayActorData();
+    const QJsonObject &getOldestActor(const QJsonDocument &jsonDocument);
 signals:
     void finished();
 public slots:
     void run();
 private:
-    void getOldestActor(const QJsonDocument &jsonDocument);
-    void requestActorData(const QJsonObject *jsonObject);
+    void showOldestActorData(const QJsonObject *jsonObject);
 private:
     QNetworkAccessManager   *m_networkAccessManager;
     QJsonObject             *m_longestRuntimeObject;

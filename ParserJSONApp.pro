@@ -1,7 +1,8 @@
 TEMPLATE = subdirs
-SUBDIRS += ParserJSON \
-    TestParserJSON\
-    ParserJSONLib
+SUBDIRS += ParserJSONLib\
+    ParserJSON \
+    TestParserJSON
+
 
 
 ParserJSON.depends = ParserJSONLib
